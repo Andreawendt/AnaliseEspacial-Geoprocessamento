@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+    <meta charset="utf-8">
+    <title>Distance to Closest</title>
+    <style>
+      #right-panel {
+        font-family: 'Roboto','sans-serif';
+        line-height: 30px;
+        padding-left: 10px;
+      }
+
+      #right-panel select, #right-panel input {
+        font-size: 15px;
+      }
+
+      #right-panel select {
+        width: 100%;
+      }
+
+      #right-panel i {
+        font-size: 12px;
+      }
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      #map {
+        height: 100%;
+        float: left;
+        width: 70%;
+        height: 85%;
+      }
+      #right-panel {
+        margin: 20px;
+        border-width: 2px;
+        width: 20%;
+        height: 400px;
+        float: left;
+        text-align: left;
+        padding-top: 0;
+      }
+      #directions-panel {
+        margin-top: 10px;
+        background-color: #FFEE77;
+        padding: 10px;
+        overflow: scroll;
+        height: 274px;
+      }
+      #floating-panel {
+        position: absolute;
+        top: 30px;
+        left: 25%;
+        z-index: 5;
+        background-color: #fff;
+        padding: 5px;
+        border: 1px solid #999;
+        text-align: center;
+        font-family: 'Roboto','sans-serif';
+        line-height: 30px;
+        padding-left: 10px;
+      }
+    </style>
+  </head>
+  <body>
+
+    <div id="floating-panel">
+      <input type="checkbox" name="paciente" id="checkpaciente"  onchange="ajustarMarkers(this)">Pacientes
+      <input type="checkbox" name="ubs" id="checkubs"  onchange="ajustarMarkers(this)">UBS
+      <input type="checkbox" name="clinica" id="checkclinica"  onchange="ajustarMarkers(this)">Clinicas
+    </div>
+
+    <div id="style-selector-control" class="map-control">
+
+      <input type="radio" name="show-style" id="show-style-padrao"
+          class="selector-control" checked="checked">
+      <label for="show-style-padrao">Padrao</label>
+
+      <input type="radio" name="show-style" id="show-style-retro"
+          class="selector-control">
+      <label for="show-style-retro">Retro</label>
+
+      <input type="radio" name="show-style" id="show-style-dark"
+          class="selector-control">
+      <label for="show-style-dark">Dark</label>
+
+      <input type="radio" name="show-style" id="show-style-night"
+          class="selector-control">
+      <label for="show-style-night">Night</label>      
+      
+      <input type="radio" name="show-style" id="show-style-silver"
+          class="selector-control">
+      <label for="show-style-silver">Silver</label>
+
+      <input type="radio" name="show-style" id="show-style-aubergine"
+          class="selector-control">
+      <label for="show-style-aubergine">Aubergine</label>      
+      
+    </div>
+
+    <div id="map"></div>
+    <div id="right-panel">
+    <div>
+    
+    <!-- <b>Key:</b>
+    <input type="text" name="chave" id="chave"> -->
+
+    <!-- <b>Chave:</b>
+    <input type="" name=""> -->
+
+    <!-- <b>Chave de Acesso:</b>
+    <br><input id="chave" type="text" name="chave"><br>     -->
+
+    <b>Modal:</b>
+    <select id="modal"></select> 
+    <b>Pacientes:</b>
+    <select id="paciente"></select>
+    <br>
+    <b><input type="radio" name="dest-radio" id="ubs-radio" value="ubs" class="selector-control" checked="checked">  Unidades Básica de Saúde:</b>
+    <select id="ubs"></select>    
+    <br>
+    <b><input type="radio" name="dest-radio" id="clinica-radio" value="clinica" class="selector-control">  Clinicas:</b>
+    <select id="clinica"></select>
+    <br>
+
+    <br>
+    <input type="submit" id="submit" value="Consultar">
+    </div>
+    <div id="directions-panel"></div>
+    </div>
+    <script>
+
+      var estiloSilver = [{'elementType':'geometry','stylers':[{'color':'#f5f5f5'}]},{'elementType':'labels.icon','stylers':[{'visibility':'off'}]},{'elementType':'labels.text.fill','stylers':[{'color':'#616161'}]},{'elementType':'labels.text.stroke','stylers':[{'color':'#f5f5f5'}]},{'featureType':'administrative.land_parcel','elementType':'labels.text.fill','stylers':[{'color':'#bdbdbd'}]},{'featureType':'poi','elementType':'geometry','stylers':[{'color':'#eeeeee'}]},{'featureType':'poi','elementType':'labels.text.fill','stylers':[{'color':'#757575'}]},{'featureType':'poi.park','elementType':'geometry','stylers':[{'color':'#e5e5e5'}]},{'featureType':'poi.park','elementType':'labels.text.fill','stylers':[{'color':'#9e9e9e'}]},{'featureType':'road','elementType':'geometry','stylers':[{'color':'#ffffff'}]},{'featureType':'road.arterial','elementType':'labels.text.fill','stylers':[{'color':'#757575'}]},{'featureType':'road.highway','elementType':'geometry','stylers':[{'color':'#dadada'}]},{'featureType':'road.highway','elementType':'labels.text.fill','stylers':[{'color':'#616161'}]},{'featureType':'road.local','elementType':'labels.text.fill','stylers':[{'color':'#9e9e9e'}]},{'featureType':'transit.line','elementType':'geometry','stylers':[{'color':'#e5e5e5'}]},{'featureType':'transit.station','elementType':'geometry','stylers':[{'color':'#eeeeee'}]},{'featureType':'water','elementType':'geometry','stylers':[{'color':'#c9c9c9'}]},{'featureType':'water','elementType':'labels.text.fill','stylers':[{'color':'#9e9e9e'}]}];
+
+      var estiloAubergine = [{'elementType':'geometry','stylers':[{'color':'#1d2c4d'}]},{'elementType':'labels.text.fill','stylers':[{'color':'#8ec3b9'}]},{'elementType':'labels.text.stroke','stylers':[{'color':'#1a3646'}]},{'featureType':'administrative.country','elementType':'geometry.stroke','stylers':[{'color':'#4b6878'}]},{'featureType':'administrative.land_parcel','stylers':[{'visibility':'off'}]},{'featureType':'administrative.land_parcel','elementType':'labels.text.fill','stylers':[{'color':'#64779e'}]},{'featureType':'administrative.neighborhood','stylers':[{'visibility':'off'}]},{'featureType':'administrative.province','elementType':'geometry.stroke','stylers':[{'color':'#4b6878'}]},{'featureType':'landscape.man_made','elementType':'geometry.stroke','stylers':[{'color':'#334e87'}]},{'featureType':'landscape.natural','elementType':'geometry','stylers':[{'color':'#023e58'}]},{'featureType':'poi','elementType':'geometry','stylers':[{'color':'#283d6a'}]},{'featureType':'poi','elementType':'labels.text','stylers':[{'visibility':'off'}]},{'featureType':'poi','elementType':'labels.text.fill','stylers':[{'color':'#6f9ba5'}]},{'featureType':'poi','elementType':'labels.text.stroke','stylers':[{'color':'#1d2c4d'}]},{'featureType':'poi.business','stylers':[{'visibility':'off'}]},{'featureType':'poi.park','elementType':'geometry.fill','stylers':[{'color':'#023e58'}]},{'featureType':'poi.park','elementType':'labels.text','stylers':[{'visibility':'off'}]},{'featureType':'poi.park','elementType':'labels.text.fill','stylers':[{'color':'#3C7680'}]},{'featureType':'road','elementType':'geometry','stylers':[{'color':'#304a7d'}]},{'featureType':'road','elementType':'labels','stylers':[{'visibility':'off'}]},{'featureType':'road','elementType':'labels.text.fill','stylers':[{'color':'#98a5be'}]},{'featureType':'road','elementType':'labels.text.stroke','stylers':[{'color':'#1d2c4d'}]},{'featureType':'road.highway','elementType':'geometry','stylers':[{'color':'#2c6675'}]},{'featureType':'road.highway','elementType':'geometry.stroke','stylers':[{'color':'#255763'}]},{'featureType':'road.highway','elementType':'labels.text.fill','stylers':[{'color':'#b0d5ce'}]},{'featureType':'road.highway','elementType':'labels.text.stroke','stylers':[{'color':'#023e58'}]},{'featureType':'transit','elementType':'labels.text.fill','stylers':[{'color':'#98a5be'}]},{'featureType':'transit','elementType':'labels.text.stroke','stylers':[{'color':'#1d2c4d'}]},{'featureType':'transit.line','elementType':'geometry.fill','stylers':[{'color':'#283d6a'}]},{'featureType':'transit.station','elementType':'geometry','stylers':[{'color':'#3a4762'}]},{'featureType':'water','elementType':'geometry','stylers':[{'color':'#0e1626'}]},{'featureType':'water','elementType':'labels.text','stylers':[{'visibility':'off'}]},{'featureType':'water','elementType':'labels.text.fill','stylers':[{'color':'#4e6d70'}]}]
+
+      var estiloRetro = [{'elementType':'geometry','stylers':[{'color':'#ebe3cd'}]},{'elementType':'labels.text.fill','stylers':[{'color':'#523735'}]},{'elementType':'labels.text.stroke','stylers':[{'color':'#f5f1e6'}]},{'featureType':'administrative','elementType':'geometry.stroke','stylers':[{'color':'#c9b2a6'}]},{'featureType':'administrative.land_parcel','elementType':'geometry.stroke','stylers':[{'color':'#dcd2be'}]},{'featureType':'administrative.land_parcel','elementType':'labels.text.fill','stylers':[{'color':'#ae9e90'}]},{'featureType':'landscape.natural','elementType':'geometry','stylers':[{'color':'#dfd2ae'}]},{'featureType':'poi','elementType':'geometry','stylers':[{'color':'#dfd2ae'}]},{'featureType':'poi','elementType':'labels.text.fill','stylers':[{'color':'#93817c'}]},{'featureType':'poi.park','elementType':'geometry.fill','stylers':[{'color':'#a5b076'}]},{'featureType':'poi.park','elementType':'labels.text.fill','stylers':[{'color':'#447530'}]},{'featureType':'road','elementType':'geometry','stylers':[{'color':'#f5f1e6'}]},{'featureType':'road.arterial','elementType':'geometry','stylers':[{'color':'#fdfcf8'}]},{'featureType':'road.highway','elementType':'geometry','stylers':[{'color':'#f8c967'}]},{'featureType':'road.highway','elementType':'geometry.stroke','stylers':[{'color':'#e9bc62'}]},{'featureType':'road.highway.controlled_access','elementType':'geometry','stylers':[{'color':'#e98d58'}]},{'featureType':'road.highway.controlled_access','elementType':'geometry.stroke','stylers':[{'color':'#db8555'}]},{'featureType':'road.local','elementType':'labels.text.fill','stylers':[{'color':'#806b63'}]},{'featureType':'transit.line','elementType':'geometry','stylers':[{'color':'#dfd2ae'}]},{'featureType':'transit.line','elementType':'labels.text.fill','stylers':[{'color':'#8f7d77'}]},{'featureType':'transit.line','elementType':'labels.text.stroke','stylers':[{'color':'#ebe3cd'}]},{'featureType':'transit.station','elementType':'geometry','stylers':[{'color':'#dfd2ae'}]},{'featureType':'water','elementType':'geometry.fill','stylers':[{'color':'#b9d3c2'}]},{'featureType':'water','elementType':'labels.text.fill','stylers':[{'color':'#92998d'}]}];
+
+
+      var estiloDark = [{'elementType':'geometry','stylers':[{'color':'#212121'}]},{'elementType':'labels.icon','stylers':[{'visibility':'off'}]},{'elementType':'labels.text.fill','stylers':[{'color':'#757575'}]},{'elementType':'labels.text.stroke','stylers':[{'color':'#212121'}]},{'featureType':'administrative','elementType':'geometry','stylers':[{'color':'#757575'}]},{'featureType':'administrative.country','elementType':'labels.text.fill','stylers':[{'color':'#9e9e9e'}]},{'featureType':'administrative.land_parcel','stylers':[{'visibility':'off'}]},{'featureType':'administrative.locality','elementType':'labels.text.fill','stylers':[{'color':'#bdbdbd'}]},{'featureType':'poi','elementType':'labels.text.fill','stylers':[{'color':'#757575'}]},{'featureType':'poi.park','elementType':'geometry','stylers':[{'color':'#181818'}]},{'featureType':'poi.park','elementType':'labels.text.fill','stylers':[{'color':'#616161'}]},{'featureType':'poi.park','elementType':'labels.text.stroke','stylers':[{'color':'#1b1b1b'}]},{'featureType':'road','elementType':'geometry.fill','stylers':[{'color':'#2c2c2c'}]},{'featureType':'road','elementType':'labels.text.fill','stylers':[{'color':'#8a8a8a'}]},{'featureType':'road.arterial','elementType':'geometry','stylers':[{'color':'#373737'}]},{'featureType':'road.highway','elementType':'geometry','stylers':[{'color':'#3c3c3c'}]},{'featureType':'road.highway.controlled_access','elementType':'geometry','stylers':[{'color':'#4e4e4e'}]},{'featureType':'road.local','elementType':'labels.text.fill','stylers':[{'color':'#616161'}]},{'featureType':'transit','elementType':'labels.text.fill','stylers':[{'color':'#757575'}]},{'featureType':'water','elementType':'geometry','stylers':[{'color':'#000000'}]},{'featureType':'water','elementType':'labels.text.fill','stylers':[{'color':'#3d3d3d'}]}];
+
+      var estiloNight = [{'elementType':'geometry','stylers':[{'color':'#242f3e'}]},{'elementType':'labels.text.fill','stylers':[{'color':'#746855'}]},{'elementType':'labels.text.stroke','stylers':[{'color':'#242f3e'}]},{'featureType':'administrative.locality','elementType':'labels.text.fill','stylers':[{'color':'#d59563'}]},{'featureType':'poi','elementType':'labels.text.fill','stylers':[{'color':'#d59563'}]},{'featureType':'poi.park','elementType':'geometry','stylers':[{'color':'#263c3f'}]},{'featureType':'poi.park','elementType':'labels.text.fill','stylers':[{'color':'#6b9a76'}]},{'featureType':'road','elementType':'geometry','stylers':[{'color':'#38414e'}]},{'featureType':'road','elementType':'geometry.stroke','stylers':[{'color':'#212a37'}]},{'featureType':'road','elementType':'labels.text.fill','stylers':[{'color':'#9ca5b3'}]},{'featureType':'road.highway','elementType':'geometry','stylers':[{'color':'#746855'}]},{'featureType':'road.highway','elementType':'geometry.stroke','stylers':[{'color':'#1f2835'}]},{'featureType':'road.highway','elementType':'labels.text.fill','stylers':[{'color':'#f3d19c'}]},{'featureType':'transit','elementType':'geometry','stylers':[{'color':'#2f3948'}]},{'featureType':'transit.station','elementType':'labels.text.fill','stylers':[{'color':'#d59563'}]},{'featureType':'water','elementType':'geometry','stylers':[{'color':'#17263c'}]},{'featureType':'water','elementType':'labels.text.fill','stylers':[{'color':'#515c6d'}]},{'featureType':'water','elementType':'labels.text.stroke','stylers':[{'color':'#17263c'}]}];
+
+      //var url = https://maps.googleapis.com/maps/api/js?key=AIzaSyAJQUGZb0_60vqCfx4FdacM_C6xNMhxdjA&callback=initMap"
+
+      var map;
+      var markersPacientes = [];
+      var markersUbs = [];
+      var markersClinicas = [];
+
+      var pacientes;
+      var clinicas;
+      var ubs;
+
+      var destino="ubs";
+
+      function ajustarMarkers(checkboxElem) {
+        if (checkboxElem.checked) {
+
+          if (checkboxElem.name=="paciente"){
+            marcarPacientes();
+          }else if (checkboxElem.name=="ubs"){
+            marcarUbs();
+          }else if (checkboxElem.name=="clinica"){
+            marcarClinicas();
+          }
+          
+        } else {
+          
+          if (checkboxElem.name=="paciente"){
+            limparMarkers(markersPacientes);
+          }else if (checkboxElem.name=="ubs"){
+            limparMarkers(markersUbs);
+          }else if (checkboxElem.name=="clinica"){
+            limparMarkers(markersClinicas);
+          }
+          
+        }
+      }
+
+      function limparMarkers(array) {
+        for (var i = 0; i < array.length; i++) {
+          array[i].setMap(null);
+        }
+      }
+
+      function marcarPacientes() {
+
+        var image = {
+          url: 'person4.png',
+          size: new google.maps.Size(25, 32),
+          origin: new google.maps.Point(0, 0),
+          anchor: new google.maps.Point(0, 30)
+        };
+
+        var shape = {
+          coords: [1, 1, 1, 20, 18, 20, 18, 1],
+          type: 'poly'
+        };
+        
+        for (var i = 0; i < pacientes.length; i++) {
+          var unidade = pacientes[i];
+          var marker = new google.maps.Marker({
+            position: {lat: unidade[1], lng: unidade[2]},
+            map: map,
+            icon: image,
+            shape: shape,
+            animation: google.maps.Animation.DROP,
+            //label: 'P'+unidade[3],
+            zIndex: unidade[3]
+          });
+          markersPacientes.push(marker);
+        }
+        
+      }
+
+      function marcarUbs() {
+
+        var image = {
+          url: 'hospital2.png',
+          size: new google.maps.Size(25, 32),
+          origin: new google.maps.Point(0, 0),
+          anchor: new google.maps.Point(0, 30)
+        };
+
+        var shape = {
+          coords: [1, 1, 1, 20, 18, 20, 18, 1],
+          type: 'poly'
+        };
+        
+        for (var i = 0; i < ubs.length; i++) {
+          var unidade = ubs[i];
+          var marker = new google.maps.Marker({
+            position: {lat: unidade[1], lng: unidade[2]},
+            map: map,
+            icon: image,
+            shape: shape,
+            animation: google.maps.Animation.DROP,
+            label: unidade[0],
+            zIndex: unidade[3]
+          });
+          markersUbs.push(marker);
+        }
+        
+      }
+
+      function marcarClinicas() {
+
+        var image = {
+          url: 'hospital1.png',
+          size: new google.maps.Size(25, 32),
+          origin: new google.maps.Point(0, 0),
+          anchor: new google.maps.Point(0, 30)
+        };
+
+        var shape = {
+          coords: [1, 1, 1, 20, 18, 20, 18, 1],
+          type: 'poly'
+        };
+        
+        for (var i = 0; i < clinicas.length; i++) {
+          var clinica = clinicas[i];
+          var marker = new google.maps.Marker({
+            position: {lat: clinica[1], lng: clinica[2]},
+            map: map,
+            icon: image,
+            shape: shape,
+            animation: google.maps.Animation.DROP,
+            //label: 'C' + clinica[3],
+            zIndex: clinica[3]
+          });
+          markersClinicas.push(marker);
+        }
+        
+      }
+
+      function initMap() {
+
+        document.getElementById('show-style-padrao').addEventListener('click', function() {
+          map.setOptions({styles: []});
+        });
+
+        document.getElementById('show-style-retro').addEventListener('click', function() {
+          map.setOptions({styles: estiloRetro});
+        });
+
+        document.getElementById('show-style-dark').addEventListener('click', function() {
+          map.setOptions({styles: estiloDark});
+        });
+
+        document.getElementById('show-style-silver').addEventListener('click', function() {
+          map.setOptions({styles: estiloSilver});
+        });
+
+        document.getElementById('show-style-aubergine').addEventListener('click', function() {
+          map.setOptions({styles: estiloAubergine});
+        });
+
+        document.getElementById('show-style-night').addEventListener('click', function() {
+          map.setOptions({styles: estiloNight});
+        });
+
+        document.getElementById('clinica-radio').addEventListener('click', function() {
+          destino = "clinica"
+          /*map.setOptions({styles: styles['hide']});*/
+        });
+        document.getElementById('ubs-radio').addEventListener('click', function() {
+          destino = "ubs"
+          /*map.setOptions({styles: styles['default']});*/
+        });
+
+
+        document.getElementById('checkpaciente').checked=false;
+        document.getElementById('checkubs').checked=false;
+        document.getElementById('checkclinica').checked=false;
+
+        modais = [
+          ['Andando','WALKING'],
+          ['Dirigindo','DRIVING'],
+          //['Transito','TRANSIT'],
+          ['Pedalando','BICYCLING'],
+        ]
+
+        pacientes = [
+          ['Paciente',-25.5225887,-49.0990618, 2],
+          ['Paciente',-25.5085471,-49.1359904, 3],
+          ['Paciente',-25.5231864,-49.0957294, 4],
+          ['Paciente',-25.5494878,-49.0809047, 5],
+          ['Paciente',-25.5494788,-49.0809049, 6],
+          ['Paciente',-25.5260826,-49.1046579, 8],
+          ['Paciente',-25.5255024,-49.0940314, 10],
+          ['Paciente',-25.5494698,-49.080905, 11],
+          ['Paciente',-25.5243881,-49.094427, 12],
+          ['Paciente',-25.5234481,-49.0985011, 13],
+          ['Paciente',-25.5200268,-49.1054793, 14],
+          ['Paciente',-25.5222664,-49.0999623, 15],
+          ['Paciente',-25.5233527,-49.0953288, 16],
+          ['Paciente',-25.5244568,-49.1038974, 17],
+          ['Paciente',-25.5225887,-49.0990618, 18],
+          ['Paciente',-25.519205,-49.104756, 19],
+          ['Paciente',-25.5211974,-49.0982779, 20],
+          ['Paciente',-25.5231723,-49.0953416, 21],
+          ['Paciente',-25.522931,-49.096221, 22],
+          ['Paciente',-25.5253448,-49.0978842, 23],
+          ['Paciente',-25.4762413,-49.1634604, 24],
+          ['Paciente',-25.4873255,-49.1633317, 25],
+          ['Paciente',-25.4767092,-49.1749104, 26],
+          ['Paciente',-25.4793484,-49.1758949, 27],
+          ['Paciente',-25.5342668,-49.1545676, 28],
+          ['Paciente',-25.4784235,-49.1697625, 29],
+          ['Paciente',-25.4866684,-49.1620388, 30],
+          ['Paciente',-25.4785552,-49.1767125, 31],
+          ['Paciente',-25.4883903,-49.1604112, 32],
+          ['Paciente',-25.4895583,-49.1606918, 33],
+          ['Paciente',-25.4806252,-49.1732997, 34],
+          ['Paciente',-25.480919,-49.1715249, 35],
+          ['Paciente',-25.4769944,-49.1666514, 36],
+          ['Paciente',-25.4718908,-49.1693045, 37],
+          ['Paciente',-25.4806033,-49.1751698, 38],
+          ['Paciente',-25.4891345,-49.1614443, 39],
+          ['Paciente',-25.4771262,-49.166361, 40],
+          ['Paciente',-25.4870319,-49.1622322, 41],
+          ['Paciente',-25.5479044,-49.0951399, 42],
+          ['Paciente',-25.4754868,-49.1724425, 43],
+          ['Paciente',-25.4761793,-49.1736851, 44],
+          ['Paciente',-25.4751713,-49.1659729, 45],
+          ['Paciente',-25.4854776,-49.1628327, 46],
+          ['Paciente',-25.4999802,-49.1495414, 47],
+          ['Paciente',-25.4969337,-49.1527811, 48],
+          ['Paciente',-25.4965087,-49.1527279, 49],
+          ['Paciente',-25.4984753,-49.1511858, 50],
+          ['Paciente',-25.4995756,-49.1418187, 51],
+          ['Paciente',-25.5051401,-49.1314472, 52],
+          ['Paciente',-25.4946438,-49.1515926, 53],
+          ['Paciente',-25.4950172,-49.1518555, 54],
+          ['Paciente',-25.5040855,-49.1507916, 55],
+          ['Paciente',-25.5002115,-49.1492693, 56],
+          ['Paciente',-25.4947878,-49.1544253, 57],
+          ['Paciente',-25.4992063,-49.1340656, 58],
+          ['Paciente',-25.4971889,-49.1515437, 59],
+          ['Paciente',-25.4761405,-49.1727409, 60],
+          ['Paciente',-25.4780969,-49.1725323, 61],
+          ['Paciente',-25.4743148,-49.1675075, 62],
+          ['Paciente',-25.4880147,-49.1599793, 63],
+          ['Paciente',-25.4737503,-49.1678443, 64],
+          ['Paciente',-25.4782688,-49.1725596, 65],
+          ['Paciente',-25.4758452,-49.1664401, 66],
+          ['Paciente',-25.4780969,-49.1725323, 67],
+          ['Paciente',-25.479856,-49.1746042, 68],
+          ['Paciente',-25.4780969,-49.1725323, 69],
+          ['Paciente',-25.4771717,-49.1729043, 70],
+          ['Paciente',-25.4799052,-49.1720276, 71],
+          ['Paciente',-25.4799417,-49.1771391, 72],
+          ['Paciente',-25.4816801,-49.171026, 73],
+          ['Paciente',-25.5479135,-49.0951398, 74],
+          ['Paciente',-25.4782792,-49.1733948, 75],
+          ['Paciente',-25.4807551,-49.1750382, 76],
+          ['Paciente',-25.4775248,-49.1693684, 77],
+          ['Paciente',-25.4736335,-49.1700539, 78],
+          ['Paciente',-25.4772756,-49.1718287, 79],
+          ['Paciente',-25.4845596,-49.1637716, 80],
+          ['Paciente',-25.4759057,-49.1698404, 81],
+          ['Paciente',-25.4753231,-49.1687254, 82],
+          ['Paciente',-25.4878451,-49.1637316, 83],
+          ['Paciente',-25.4782777,-49.1725495, 84],
+          ['Paciente',-25.4781938,-49.1723419, 85],
+          ['Paciente',-25.4809371,-49.1751548, 86],
+          ['Paciente',-25.4755662,-49.166504, 87],
+          ['Paciente',-25.4738239,-49.1686785, 88],
+          ['Paciente',-25.4789732,-49.1762089, 89],
+          ['Paciente',-25.4707104,-49.1731014, 90],
+          ['Paciente',-25.4942539,-49.1514594, 91],
+          ['Paciente',-25.4828687,-49.1743996, 92],
+          ['Paciente',-25.500934,-49.1414397, 93],
+          ['Paciente',-25.4961342,-49.1667588, 94],
+          ['Paciente',-25.4994353,-49.1759298, 95],
+          ['Paciente',-25.4987591,-49.1745474, 96],
+          ['Paciente',-25.4955637,-49.1695128, 98],
+          ['Paciente',-25.4966261,-49.1671194, 99],
+          ['Paciente',-25.4954177,-49.1730064, 100],
+          ['Paciente',-25.4960863,-49.1378936, 101],
+          ['Paciente',-25.4959589,-49.1693477, 103],
+          ['Paciente',-25.4943377,-49.1703769, 104],
+          ['Paciente',-25.4912309,-49.1782419, 105],
+          ['Paciente',-25.4937983,-49.1712802, 106],
+          ['Paciente',-25.5002851,-49.1782048, 107],
+          ['Paciente',-25.5172055,-49.1697317, 108],
+          ['Paciente',-25.493746,-49.1685357, 109],
+          ['Paciente',-25.5412412,-49.0613543, 110],
+          ['Paciente',-25.5140609,-49.161562, 111],
+          ['Paciente',-25.5204222,-49.1917797, 112],
+          ['Paciente',-25.5226773,-49.1952878, 113],
+          ['Paciente',-25.5072539,-49.1876297, 114],
+          ['Paciente',-25.4963801,-49.1770701, 115],
+          ['Paciente',-25.5156146,-49.1950353, 117],
+          ['Paciente',-25.5203484,-49.196039, 118],
+          ['Paciente',-25.5194476,-49.1932667, 119],
+          ['Paciente',-25.5098133,-49.1938587, 121],
+          ['Paciente',-25.5072448,-49.1876299, 122],
+          ['Paciente',-25.4828596,-49.1743997, 123],
+          ['Paciente',-25.5086276,-49.1884845, 125],
+          ['Paciente',-25.5232536,-49.1900459, 126],
+          ['Paciente',-25.510049,-49.1917362, 127],
+          ['Paciente',-25.4733739,-49.1695108, 128],
+          ['Paciente',-25.4794207,-49.1773459, 129],
+          ['Paciente',-25.4828257,-49.1731272, 130],
+          ['Paciente',-25.481384,-49.1711698, 131],
+          ['Paciente',-25.4800949,-49.1756648, 132],
+          ['Paciente',-25.4767426,-49.1710709, 133],
+          ['Paciente',-25.5109501,-49.1763029, 134],
+          ['Paciente',-25.4858148,-49.1623601, 135],
+          ['Paciente',-25.4828506,-49.1743999, 136],
+          ['Paciente',-25.5323251,-49.1855715, 137],
+          ['Paciente',-25.5268482,-49.1872558, 138],
+          ['Paciente',-25.540004,-49.1780128, 139],
+          ['Paciente',-25.5236413,-49.1929353, 141],
+          ['Paciente',-25.5391042,-49.1826136, 142],
+          ['Paciente',-25.5656815,-49.1928322, 143],
+          ['Paciente',-25.5532149,-49.1987316, 144],
+          ['Paciente',-25.5288723,-49.1866881, 145],
+          ['Paciente',-25.5347544,-49.1812762, 147],
+          ['Paciente',-25.5248346,-49.1872264, 148],
+          ['Paciente',-25.5236601,-49.1886071, 149],
+          ['Paciente',-25.5268676,-49.1866386, 150],
+          ['Paciente',-25.5206396,-49.1787133, 151],
+          ['Paciente',-25.5345492,-49.1814684, 152],
+          ['Paciente',-25.5320092,-49.1855762, 153],
+          ['Paciente',-25.5348945,-49.1809259, 154],
+          ['Paciente',-25.5197751,-49.191282, 155],
+          ['Paciente',-25.5418814,-49.1342611, 156],
+          ['Paciente',-25.5244935,-49.188107, 157],
+          ['Paciente',-25.5288633,-49.1866882, 158],
+          ['Paciente',-25.5347662,-49.1851367, 159],
+          ['Paciente',-25.5326727,-49.1837554, 161],
+          ['Paciente',-25.5142716,-49.171179, 162],
+          ['Paciente',-25.4957579,-49.1873249, 163],
+          ['Paciente',-25.4999584,-49.1838897, 164],
+          ['Paciente',-25.5332558,-49.2135472, 165],
+          ['Paciente',-25.513999,-49.1659801, 166],
+          ['Paciente',-25.4983314,-49.1837251, 167],
+          ['Paciente',-25.4986064,-49.1818808, 169],
+          ['Paciente',-25.4955983,-49.187556, 170],
+          ['Paciente',-25.5009639,-49.1834368, 171],
+          ['Paciente',-25.500143,-49.1864036, 172],
+          ['Paciente',-25.4957489,-49.187325, 173],
+          ['Paciente',-25.5000461,-49.1785864, 174],
+          ['Paciente',-25.4985496,-49.1838512, 175],
+          ['Paciente',-25.5059729,-49.1789645, 176],
+          ['Paciente',-25.5033079,-49.1831827, 177],
+          ['Paciente',-25.5034325,-49.1786746, 178],
+          ['Paciente',-25.5029389,-49.1854563, 179],
+          ['Paciente',-25.5037821,-49.1828374, 180],
+          ['Paciente',-25.4948658,-49.1765359, 181],
+          ['Paciente',-25.4776691,-49.1744284, 182],
+          ['Paciente',-25.4753317,-49.1715895, 183],
+          ['Paciente',-25.5479132,-49.0951199, 184],
+          ['Paciente',-25.4851748,-49.1624394, 185],
+          ['Paciente',-25.5072629,-49.1876296, 186],
+          ['Paciente',-25.5010746,-49.1865487, 187],
+          ['Paciente',-25.5104031,-49.188249, 188],
+          ['Paciente',-25.5102224,-49.1896942, 189],
+          ['Paciente',-25.5107049,-49.1944124, 190],
+          ['Paciente',-25.5164247,-49.1904567, 191],
+          ['Paciente',-25.5378413,-49.1538163, 192],
+          ['Paciente',-25.5357867,-49.1584149, 193],
+          ['Paciente',-25.5333686,-49.1513476, 194],
+          ['Paciente',-25.5347024,-49.1561828, 195],
+          ['Paciente',-25.538624,-49.1557546, 196],
+          ['Paciente',-25.5262548,-49.1556354, 197],
+          ['Paciente',-25.5381486,-49.1538514, 198],
+          ['Paciente',-25.5380646,-49.1557831, 199],
+          ['Paciente',-25.5346934,-49.1561829, 200],
+          ['Paciente',-25.5368726,-49.1586173, 201],
+          ['Paciente',-25.5425964,-49.1644008, 202],
+          ['Paciente',-25.5498811,-49.1751965, 203],
+          ['Paciente',-25.5579639,-49.1790748, 204],
+          ['Paciente',-25.546712,-49.1824193, 205],
+          ['Paciente',-25.5469509,-49.1783954, 206],
+          ['Paciente',-25.5709366,-49.1538763, 207],
+          ['Paciente',-25.5441099,-49.1873345, 208],
+          ['Paciente',-25.5583407,-49.17888, 209],
+          ['Paciente',-25.5460932,-49.1762092, 210],
+          ['Paciente',-25.5581571,-49.178634, 211],
+          ['Paciente',-25.5475139,-49.1822878, 212],
+          ['Paciente',-25.5416351,-49.1633308, 213],
+          ['Paciente',-25.5572815,-49.1779207, 214],
+          ['Paciente',-25.5449946,-49.1526719, 215],
+          ['Paciente',-25.4949093,-49.1376233, 216],
+          ['Paciente',-25.5388673,-49.1889955, 217],
+          ['Paciente',-25.5335448,-49.1296739, 218],
+          ['Paciente',-25.5558567,-49.1802213, 219],
+          ['Paciente',-25.542005,-49.1886797, 220],
+          ['Paciente',-25.5437371,-49.1682642, 223],
+          ['Paciente',-25.5526674,-49.1691535, 224],
+          ['Paciente',-25.55149,-49.1753513, 225],
+          ['Paciente',-25.5410459,-49.1841267, 226],
+          ['Paciente',-25.5514574,-49.1547521, 227],
+          ['Paciente',-25.5529474,-49.174951, 228],
+          ['Paciente',-25.5546635,-49.1779205, 229],
+          ['Paciente',-25.5469717,-49.1757182, 230],
+          ['Paciente',-25.5423272,-49.1811719, 231],
+          ['Paciente',-25.5477256,-49.1753585, 232],
+          ['Paciente',-25.5408945,-49.1850246, 233],
+          ['Paciente',-25.5490948,-49.1758453, 234],
+          ['Paciente',-25.54344,-49.1654427, 235],
+          ['Paciente',-25.5557448,-49.1799344, 236],
+          ['Paciente',-25.5024469,-49.1843695, 237],
+          ['Paciente',-25.5001751,-49.1868109, 238],
+          ['Paciente',-25.5394619,-49.1881607, 239],
+          ['Paciente',-25.521526,-49.1694374, 240],
+          ['Paciente',-25.4971799,-49.1515439, 241],
+          ['Paciente',-25.4942539,-49.1514594, 242],
+          ['Paciente',-25.4990263,-49.1512073, 243],
+          ['Paciente',-25.484439,-49.1477207, 244],
+          ['Paciente',-25.4945952,-49.1556218, 245],
+          ['Paciente',-25.4945862,-49.155622, 246],
+          ['Paciente',-25.5634559,-49.2122832, 247],
+          ['Paciente',-25.5530052,-49.2207083, 248],
+          ['Paciente',-25.5584325,-49.2201007, 249],
+          ['Paciente',-25.5586752,-49.2200175, 250],
+          ['Paciente',-25.5662317,-49.203792, 251],
+          ['Paciente',-25.4841464,-49.1524395, 252],
+          ['Paciente',-25.5621635,-49.2003793, 253],
+          ['Paciente',-25.5661438,-49.2054554, 254],
+          ['Paciente',-25.5691092,-49.2035998, 255],
+          ['Paciente',-25.5545441,-49.2084646, 256],
+          ['Paciente',-25.5523878,-49.2019484, 257],
+          ['Paciente',-25.5616603,-49.2020389, 258],
+          ['Paciente',-25.5614609,-49.2027087, 259],
+          ['Paciente',-25.5651398,-49.2016187, 260],
+          ['Paciente',-25.5665961,-49.2077379, 261],
+          ['Paciente',-25.5651307,-49.2016188, 262],
+          ['Paciente',-25.5692607,-49.2049113, 263],
+          ['Paciente',-25.5651488,-49.2016186, 264],
+          ['Paciente',-25.5655074,-49.2095157, 265],
+          ['Paciente',-25.5629223,-49.2114651, 266],
+          ['Paciente',-25.5621726,-49.207744, 267],
+          ['Paciente',-25.5651217,-49.201619, 268],
+          ['Paciente',-25.564097,-49.2063917, 270],
+          ['Paciente',-25.5621544,-49.2003794, 271],
+          ['Paciente',-25.5674771,-49.1891127, 272],
+          ['Paciente',-25.5683567,-49.2033423, 273],
+          ['Paciente',-25.5501189,-49.1805169, 274],
+          ['Paciente',-25.5412044,-49.1823531, 275],
+          ['Paciente',-25.6878088,-49.141388, 276],
+          ['Paciente',-25.5628929,-49.200229, 277],
+          ['Paciente',-25.5550788,-49.2182494, 278],
+          ['Paciente',-25.5479025,-49.1779631, 279],
+          ['Paciente',-25.5505239,-49.1906116, 280],
+          ['Paciente',-25.5577711,-49.1795355, 281],
+          ['Paciente',-25.535341,-49.2090983, 282],
+          ['Paciente',-25.527571,-49.2019604, 284],
+          ['Paciente',-25.5537117,-49.2097906, 285],
+          ['Paciente',-25.5647882,-49.1943286, 286],
+          ['Paciente',-25.5515378,-49.1690612, 287],
+          ['Paciente',-25.519191,-49.178377, 288],
+          ['Paciente',-25.527355,-49.2005409, 289],
+          ['Paciente',-25.5336775,-49.1985958, 290],
+          ['Paciente',-25.5550467,-49.197928, 291],
+          ['Paciente',-25.5507128,-49.205964, 292],
+          ['Paciente',-25.54086,-49.2049266, 293],
+          ['Paciente',-25.5231655,-49.2056377, 294],
+          ['Paciente',-25.5213852,-49.2069576, 295],
+          ['Paciente',-25.5621454,-49.2003795, 296],
+          ['Paciente',-25.5064726,-49.1654677, 297],
+          ['Paciente',-25.5515313,-49.1757686, 298],
+          ['Paciente',-25.539655,-49.2016309, 299],
+          ['Paciente',-25.5391833,-49.2073397, 300],
+          ['Paciente',-25.530888,-49.2059507, 301],
+          ['Paciente',-25.5310648,-49.1880481, 302],
+          ['Paciente',-25.5264127,-49.2083653, 303],
+          ['Paciente',-25.529913,-49.1993286, 304],
+          ['Paciente',-25.5606542,-49.1740082, 305],
+          ['Paciente',-25.5139361,-49.1987613, 306],
+          ['Paciente',-25.5191635,-49.2105822, 307],
+          ['Paciente',-25.5350307,-49.1550136, 308],
+          ['Paciente',-25.5632618,-49.1949984, 309],
+          ['Paciente',-25.5546259,-49.1989494, 310],
+          ['Paciente',-25.5640822,-49.1745335, 311],
+          ['Paciente',-25.5640822,-49.1745335, 312],
+          ['Paciente',-25.5520655,-49.1948278, 313],
+          ['Paciente',-25.5595288,-49.1742542, 314],
+          ['Paciente',-25.5934506,-49.1545561, 315],
+          ['Paciente',-25.4841554,-49.1524394, 316],
+          ['Paciente',-25.5572289,-49.2154111, 317],
+          ['Paciente',-25.6285044,-49.2245102, 319],
+          ['Paciente',-25.5563528,-49.2087263, 320],
+          ['Paciente',-25.5527395,-49.2019133, 322],
+          ['Paciente',-25.5557941,-49.1919257, 323],
+          ['Paciente',-25.542455,-49.1922154, 324],
+          ['Paciente',-25.5544752,-49.190393, 325],
+          ['Paciente',-25.5500817,-49.1957433, 326],
+          ['Paciente',-25.5526311,-49.2048507, 327],
+          ['Paciente',-25.6148862,-49.1750465, 328],
+          ['Paciente',-25.6180958,-49.1768796, 329],
+          ['Paciente',-25.6177251,-49.1753917, 330],
+          ['Paciente',-25.6188703,-49.1781822, 331],
+          ['Paciente',-25.6137012,-49.1734117, 333],
+          ['Paciente',-25.6055065,-49.1706988, 334],
+          ['Paciente',-25.6146013,-49.172472, 335],
+          ['Paciente',-25.615563,-49.1721388, 336],
+          ['Paciente',-25.6158058,-49.1749529, 337],
+          ['Paciente',-25.6178691,-49.1782472, 338],
+          ['Paciente',-25.6200236,-49.1765517, 339],
+          ['Paciente',-25.6124592,-49.1722657, 340],
+          ['Paciente',-25.6122588,-49.1750167, 341],
+          ['Paciente',-25.6150729,-49.1755415, 344],
+          ['Paciente',-25.6020354,-49.1638524, 345],
+          ['Paciente',-25.6071594,-49.1657255, 346],
+          ['Paciente',-25.6023598,-49.1717323, 347],
+          ['Paciente',-25.6015078,-49.1649754, 348],
+          ['Paciente',-25.6047798,-49.1667375, 349],
+          ['Paciente',-25.6124276,-49.1683034, 350],
+          ['Paciente',-25.6008901,-49.1668267, 351],
+          ['Paciente',-25.609296,-49.1690979, 352],
+          ['Paciente',-25.6107688,-49.1670443, 353],
+          ['Paciente',-25.6040622,-49.162786, 355],
+          ['Paciente',-25.6174939,-49.1785616, 356],
+          ['Paciente',-25.6062855,-49.1716328, 357],
+          ['Paciente',-25.6052518,-49.1662225, 358],
+          ['Paciente',-25.6044895,-49.1637452, 359],
+          ['Paciente',-25.5451235,-49.1672381, 360],
+          ['Paciente',-25.5580446,-49.1660164, 361],
+          ['Paciente',-25.5571626,-49.1982148, 362],
+          ['Paciente',-25.5437054,-49.1896691, 363],
+          ['Paciente',-25.5428378,-49.1663773, 364],
+          ['Paciente',-25.5439357,-49.1675447, 365],
+          ['Paciente',-25.5576263,-49.1809608, 366],
+          ['Paciente',-25.5429144,-49.1667244, 367],
+          ['Paciente',-25.5449252,-49.1890239, 368],
+          ['Paciente',-25.5531612,-49.168937, 369],
+          ['Paciente',-25.5439936,-49.1874258, 370],
+          ['Paciente',-25.5480399,-49.1846682, 371],
+          ['Paciente',-25.5465132,-49.1838553, 373],
+          ['Paciente',-25.5465132,-49.1838553, 374],
+          ['Paciente',-25.5419172,-49.1584805, 375],
+          ['Paciente',-25.5870422,-49.1726123, 377],
+          ['Paciente',-25.5871946,-49.155986, 378],
+          ['Paciente',-25.5872381,-49.1594395, 379],
+          ['Paciente',-25.5845586,-49.1660404, 380],
+          ['Paciente',-25.5880813,-49.1554349, 381],
+          ['Paciente',-25.5864365,-49.1531407, 382],
+          ['Paciente',-25.555709,-49.1850502, 383],
+          ['Paciente',-25.5904304,-49.1620386, 384],
+          ['Paciente',-25.5726922,-49.1736365, 387],
+          ['Paciente',-25.590881,-49.1576716, 388],
+          ['Paciente',-25.5730382,-49.1652107, 389],
+          ['Paciente',-25.5378707,-49.2129514, 391],
+          ['Paciente',-25.6173031,-49.1741236, 392],
+          ['Paciente',-25.5570549,-49.1924044, 393],
+          ['Paciente',-25.545468,-49.1993649, 394],
+          ['Paciente',-25.5628838,-49.2002292, 395],
+          ['Paciente',-25.5622066,-49.2068378, 396],
+          ['Paciente',-25.5864376,-49.1726314, 397],
+          ['Paciente',-25.5848489,-49.1712022, 398],
+          ['Paciente',-25.5734026,-49.169077, 399],
+          ['Paciente',-25.5386902,-49.1574253, 400],
+          ['Paciente',-25.5441702,-49.1675213, 401],
+          ['Paciente',-25.534532,-49.1391409, 402],
+          ['Paciente',-25.5232445,-49.190046, 404],
+          ['Paciente',-25.5464591,-49.2080375, 405],
+          ['Paciente',-25.5550376,-49.1979281, 406],
+          ['Paciente',-25.5483242,-49.2121695, 407],
+          ['Paciente',-25.555928,-49.183783, 408],
+          ['Paciente',-25.5388488,-49.2221114, 409],
+          ['Paciente',-25.5378607,-49.2165736, 410],
+          ['Paciente',-25.5435098,-49.2156541, 411],
+          ['Paciente',-25.5372515,-49.2221549, 412],
+          ['Paciente',-25.5381454,-49.2214253, 413],
+          ['Paciente',-25.5372209,-49.2077968, 414],
+          ['Paciente',-25.5390748,-49.2169337, 415],
+          ['Paciente',-25.5266949,-49.2048688, 416],
+          ['Paciente',-25.5392127,-49.2186233, 418],
+          ['Paciente',-25.5394915,-49.2222512, 419],
+          ['Paciente',-25.528299,-49.2009546, 420],
+          ['Paciente',-25.5350217,-49.1550137, 421],
+          ['Paciente',-25.5395937,-49.2180306, 424],
+          ['Paciente',-25.5665831,-49.2030005, 425],
+          ['Paciente',-25.546816,-49.2165605, 426],
+          ['Paciente',-25.5510854,-49.1980768, 427],
+          ['Paciente',-25.5391808,-49.2174894, 428],
+          ['Paciente',-25.5439877,-49.2163436, 429],
+          ['Paciente',-25.5302268,-49.1321133, 430],
+          ['Paciente',-25.5384909,-49.2105143, 431],
+          ['Paciente',-25.5422207,-49.2180316, 432],
+          ['Paciente',-25.6011403,-49.1723881, 434],
+          ['Paciente',-25.618603,-49.1777382, 435],
+          ['Paciente',-25.6195164,-49.1771468, 436],
+          ['Paciente',-25.5381318,-49.2195647, 437],
+          ['Paciente',-25.5396278,-49.2208362, 438],
+          ['Paciente',-25.5604918,-49.2164774, 439],
+          ['Paciente',-25.5385255,-49.2207629, 440],
+          ['Paciente',-25.5655459,-49.19794, 441],
+          ['Paciente',-25.5284763,-49.2073198, 442]
+        ]
+
+        clinicas = [
+          ['Clinica',-25.5381779,-49.2019117, 1],
+          ['Clinica',-25.5347246,-49.205207, 2],
+          ['Clinica',-25.5359296,-49.1996766, 3],
+          ['Clinica',-25.539655,-49.2016309, 4],
+          ['Clinica',-25.5359206,-49.1996767, 5],
+          ['Clinica',-25.57202,-49.1560295, 6],
+          ['Clinica',-25.5433149,-49.1960635, 7],
+          ['Clinica',-25.5359703,-49.2081437, 8],
+          ['Clinica',-25.5359116,-49.1996768, 9],
+          ['Clinica',-25.5345892,-49.2140648, 10],
+          ['Clinica',-25.5373017,-49.2026014, 11],
+          ['Clinica',-25.5413199,-49.1960735, 12],
+          ['Clinica',-25.5462524,-49.1963479, 13],
+          ['Clinica',-25.5365746,-49.2051496, 14],
+          ['Clinica',-25.5334597,-49.2007085, 15],
+          ['Clinica',-25.5065914,-49.1924644, 16],
+          ['Clinica',-25.5229525,-49.2111031, 17],
+          ['Clinica',-25.544766,-49.1944098, 18],
+          ['Clinica',-25.512371,-49.1918904, 19],
+          ['Clinica',-25.5136518,-49.1815845, 20],
+          ['Clinica',-25.5411809,-49.1979761, 21],
+          ['Clinica',-25.5410484,-49.1982169, 22],
+          ['Clinica',-25.5426172,-49.2009897, 23],
+          ['Clinica',-25.5555961,-49.2073841, 24],
+          ['Clinica',-25.5350127,-49.1817201, 25],
+          ['Clinica',-25.5433239,-49.1960634, 26],
+          ['Clinica',-25.5012658,-49.1779413, 27],
+          ['Clinica',-25.540076,-49.1976941, 28],
+          ['Clinica',-25.5192865,-49.1679392, 29],
+          ['Clinica',-25.5309929,-49.2137996, 30],
+          ['Clinica',-25.5427035,-49.1933362, 31],
+          ['Clinica',-25.5346795,-49.1985907, 32],
+          ['Clinica',-25.536151,-49.2118525, 33],
+          ['Clinica',-25.5363045,-49.2118502, 34],
+          ['Clinica',-25.5504114,-49.171387, 35],
+          ['Clinica',-25.5134474,-49.1891384, 36],
+          ['Clinica',-25.5401359,-49.2158533, 37],
+          ['Clinica',-25.6980726,-49.1470474, 38],
+          ['Clinica',-25.538129,-49.1979322, 39],
+          ['Clinica',-25.5407213,-49.2024509, 40],
+          ['Clinica',-25.5308081,-49.2141904, 41],
+          ['Clinica',-25.5094531,-49.187348, 42],
+          ['Clinica',-25.5369994,-49.198576, 43],
+          ['Clinica',-25.5388099,-49.1975141, 44],
+          ['Clinica',-25.5385974,-49.198582, 45],
+          ['Clinica',-25.540532,-49.1966027, 46],
+          ['Clinica',-25.5379037,-49.1987018, 47],
+          ['Clinica',-25.5358978,-49.2066423, 48],
+          ['Clinica',-25.5427854,-49.1999821, 49],
+          ['Clinica',-25.535728,-49.213431, 50],
+          ['Clinica',-25.5421495,-49.195265, 51],
+          ['Clinica',-25.5388009,-49.1975142, 52],
+          ['Clinica',-25.5362509,-49.1964379, 53],
+          ['Clinica',-25.5476192,-49.2017808, 54],
+          ['Clinica',-25.5353259,-49.2100737, 55],
+          ['Clinica',-25.5378553,-49.1976975, 56],
+          ['Clinica',-25.5072629,-49.1876296, 57],
+          ['Clinica',-25.5332687,-49.2013282, 58],
+          ['Clinica',-25.5597097,-49.1895381, 59],
+          ['Clinica',-25.5297119,-49.2072218, 60],
+          ['Clinica',-25.5421405,-49.1952651, 61],
+          ['Clinica',-25.5270773,-49.2066043, 62],
+          ['Clinica',-25.5330755,-49.195162, 63],
+          ['Clinica',-25.5439499,-49.1977755, 64],
+          ['Clinica',-25.5428387,-49.1816518, 65],
+          ['Clinica',-25.5532137,-49.2059865, 66],
+          ['Clinica',-25.5115103,-49.1872574, 67],
+          ['Clinica',-25.5586101,-49.1904105, 68],
+          ['Clinica',-25.536054,-49.2024509, 69],
+          ['Clinica',-25.5132345,-49.1894401, 70],
+          ['Clinica',-25.5421315,-49.1952652, 71],
+          ['Clinica',-25.5353168,-49.2019643, 72],
+          ['Clinica',-25.4858593,-49.1522542, 73],
+          ['Clinica',-25.5285112,-49.2050109, 74],
+          ['Clinica',-25.5458802,-49.181586, 75],
+          ['Clinica',-25.5454147,-49.1943006, 76],
+          ['Clinica',-25.5431267,-49.1983749, 77],
+          ['Clinica',-25.5518986,-49.1952085, 78],
+          ['Clinica',-25.5391067,-49.2010918, 79],
+          ['Clinica',-25.54289,-49.1930846, 80],
+          ['Clinica',-25.5235447,-49.2049058, 81],
+          ['Clinica',-25.5366544,-49.2035563, 82],
+          ['Clinica',-25.522461,-49.2004547, 83],
+          ['Clinica',-25.519941,-49.1959456, 84],
+          ['Clinica',-25.5387829,-49.1975145, 85],
+          ['Clinica',-25.5540424,-49.1926287, 86],
+          ['Clinica',-25.503772,-49.1740339, 87],
+          ['Clinica',-25.5365483,-49.2044734, 88],
+          ['Clinica',-25.5597006,-49.1895382, 89],
+          ['Clinica',-25.5428542,-49.1975033, 90],
+          ['Clinica',-25.541786,-49.2016688, 91],
+          ['Clinica',-25.5343734,-49.2156202, 92],
+          ['Clinica',-25.5146829,-49.1237387, 93],
+          ['Clinica',-25.5460487,-49.1966694, 94],
+          ['Clinica',-25.4861987,-49.1505283, 95],
+          ['Clinica',-25.5425357,-49.2172109, 96],
+          ['Clinica',-25.5452601,-49.2015473, 97],
+          ['Clinica',-25.5307793,-49.2015047, 98],
+          ['Clinica',-25.5117516,-49.1863286, 99],
+          ['Clinica',-25.5234157,-49.2032163, 100],
+          ['Clinica',-25.548227,-49.1946863, 101],
+          ['Clinica',-25.5459054,-49.1974975, 102],
+          ['Clinica',-25.5199319,-49.1959457, 103],
+          ['Clinica',-25.5319413,-49.2012983, 104],
+          ['Clinica',-25.5394307,-49.2054255, 105],
+          ['Clinica',-25.5347813,-49.2076241, 106],
+          ['Clinica',-25.5070532,-49.1649715, 107],
+          ['Clinica',-25.5460947,-49.1923499, 108],
+          ['Clinica',-25.5428011,-49.1975937, 109],
+          ['Clinica',-25.5372298,-49.1952889, 110],
+          ['Clinica',-25.5419103,-49.1927012, 111],
+          ['Clinica',-25.5417362,-49.2130931, 112],
+          ['Clinica',-25.5623993,-49.1749571, 113],
+          ['Clinica',-25.5350437,-49.2025157, 114],
+          ['Clinica',-25.5450534,-49.1804342, 115],
+          ['Clinica',-25.5339434,-49.2092385, 116],
+          ['Clinica',-25.5460884,-49.196231, 117],
+          ['Clinica',-25.5045944,-49.1791843, 118],
+          ['Clinica',-25.5472734,-49.1986214, 119],
+          ['Clinica',-25.5595235,-49.2147998, 120],
+          ['Clinica',-25.5338756,-49.2014883, 121],
+          ['Clinica',-25.5014238,-49.178307, 122],
+          ['Clinica',-25.5273222,-49.2052276, 123],
+          ['Clinica',-25.5376183,-49.1982483, 124],
+          ['Clinica',-25.5396622,-49.2051633, 125],
+          ['Clinica',-25.5413631,-49.2076755, 126],
+          ['Clinica',-25.5350962,-49.2023756, 127],
+          ['Clinica',-25.4945582,-49.1692396, 128],
+          ['Clinica',-25.5085578,-49.1850336, 129],
+          ['Clinica',-25.5470425,-49.1967341, 130],
+          ['Clinica',-25.5409085,-49.217026, 131],
+          ['Clinica',-25.520559,-49.200692, 132],
+          ['Clinica',-25.5107632,-49.1954859, 133],
+          ['Clinica',-25.5381262,-49.2035842, 134],
+          ['Clinica',-25.5250405,-49.2039383, 135],
+          ['Clinica',-25.5340242,-49.2018344, 136],
+          ['Clinica',-25.5072539,-49.1876297, 137],
+          ['Clinica',-25.548102,-49.1535397, 138],
+          ['Clinica',-25.5220145,-49.2023219, 139],
+          ['Clinica',-25.51995,-49.1959454, 140],
+          ['Clinica',-25.5168035,-49.2014245, 141],
+          ['Clinica',-25.5544141,-49.2066951, 142],
+          ['Clinica',-25.5413909,-49.2018439, 143],
+          ['Clinica',-25.5426894,-49.2090887, 144],
+          ['Clinica',-25.4985645,-49.1525273, 145],
+          ['Clinica',-25.5410373,-49.2039289, 146],
+          ['Clinica',-25.5387711,-49.1980221, 147],
+          ['Clinica',-25.5544981,-49.1966325, 148],
+          ['Clinica',-25.5430527,-49.2196313, 149],
+          ['Clinica',-25.5339115,-49.1926719, 150],
+          ['Clinica',-25.5342359,-49.2058411, 151],
+          ['Clinica',-25.5357893,-49.1985443, 152],
+          ['Clinica',-25.5871263,-49.1562957, 153],
+          ['Clinica',-25.5555871,-49.2073842, 154],
+          ['Clinica',-25.5398514,-49.2014489, 155],
+          ['Clinica',-25.5443205,-49.1934214, 156],
+          ['Clinica',-25.5422288,-49.1965674, 157],
+          ['Clinica',-25.5294395,-49.2026788, 158],
+          ['Clinica',-25.5341218,-49.0890595, 159],
+          ['Clinica',-25.6030338,-49.1686059, 160],
+          ['Clinica',-25.546977,-49.2002081, 161],
+          ['Clinica',-25.6081317,-49.1691156, 162],
+          ['Clinica',-25.5372265,-49.200891, 163],
+          ['Clinica',-25.5401658,-49.1983893, 164],
+          ['Clinica',-25.5484908,-49.2036585, 165],
+          ['Clinica',-25.5613084,-49.1779693, 166],
+          ['Clinica',-25.5365855,-49.197219, 167],
+          ['Clinica',-25.53812,-49.1979324, 168],
+          ['Clinica',-25.540711,-49.1979434, 169],
+          ['Clinica',-25.6020677,-49.1693076, 170],
+          ['Clinica',-25.5529535,-49.1805139, 171],
+          ['Clinica',-25.5120592,-49.1798277, 172],
+          ['Clinica',-25.5416746,-49.2095217, 173],
+          ['Clinica',-25.5401568,-49.1983895, 174],
+          ['Clinica',-25.5444561,-49.1672881, 175],
+          ['Clinica',-25.5172853,-49.192155, 176],
+          ['Clinica',-25.4972444,-49.1841593, 177],
+          ['Clinica',-25.5453843,-49.1984307, 178],
+          ['Clinica',-25.5362801,-49.155293, 179],
+          ['Clinica',-25.5207133,-49.2007593, 180],
+          ['Clinica',-25.4783658,-49.0742982, 181],
+          ['Clinica',-25.5111415,-49.1961468, 182],
+          ['Clinica',-25.4875271,-49.1635674, 183],
+          ['Clinica',-25.5531411,-49.1934782, 184],
+          ['Clinica',-25.5433554,-49.2170595, 185],
+          ['Clinica',-25.5544633,-49.1982054, 186],
+          ['Clinica',-25.4973435,-49.1797711, 187],
+          ['Clinica',-25.5387919,-49.1975143, 188],
+          ['Clinica',-25.5044056,-49.1821615, 189],
+          ['Clinica',-25.5446865,-49.1916247, 190],
+          ['Clinica',-25.5408396,-49.2195247, 191],
+          ['Clinica',-25.5559292,-49.1970191, 192],
+          ['Clinica',-25.5165406,-49.1954592, 193],
+          ['Clinica',-25.5465405,-49.2006923, 194],
+          ['Clinica',-25.5325315,-49.1993691, 195],
+          ['Clinica',-25.5497941,-49.1995192, 196],
+          ['Clinica',-25.5299543,-49.1982833, 197],
+          ['Clinica',-25.545374,-49.1800811, 198],
+          ['Clinica',-25.5396279,-49.2045767, 199],
+          ['Clinica',-25.5601815,-49.2036534, 200],
+          ['Clinica',-25.5598209,-49.2000162, 201],
+          ['Clinica',-25.5150726,-49.1659339, 202],
+          ['Clinica',-25.6053387,-49.1681128, 203],
+          ['Clinica',-25.5417368,-49.2006048, 204],
+          ['Clinica',-25.5374068,-49.1898831, 205],
+          ['Clinica',-25.5546186,-49.1699797, 206],
+          ['Clinica',-25.5560125,-49.1695504, 207],
+          ['Clinica',-25.5602512,-49.2182127, 208],
+          ['Clinica',-25.5120342,-49.1843645, 209],
+          ['Clinica',-25.5076016,-49.164794, 210],
+          ['Clinica',-25.5078608,-49.1797816, 211],
+          ['Clinica',-25.5481903,-49.1975728, 212],
+          ['Clinica',-25.5510741,-49.1949621, 213],
+          ['Clinica',-25.5410061,-49.1867444, 214],
+          ['Clinica',-25.5094742,-49.1912474, 215],
+          ['Clinica',-25.5409652,-49.2076217, 216],
+          ['Clinica',-25.5500469,-49.1552912, 217],
+          ['Clinica',-25.4734727,-49.1486048, 218],
+          ['Clinica',-25.6042455,-49.1680399, 219],
+          ['Clinica',-25.5216519,-49.1912041, 220],
+          ['Clinica',-25.5515202,-49.1989361, 221],
+          ['Clinica',-25.5478731,-49.1799538, 222],
+          ['Clinica',-25.5440699,-49.2031373, 223],
+          ['Clinica',-25.5289034,-49.1994531, 224],
+          ['Clinica',-25.5431267,-49.1983749, 225],
+          ['Clinica',-25.5203949,-49.2049725, 226],
+          ['Clinica',-25.5467976,-49.1973747, 227],
+          ['Clinica',-25.5476468,-49.0968456, 228],
+          ['Clinica',-25.7527947,-49.1820447, 229],
+          ['Clinica',-25.5264686,-49.2107226, 230],
+          ['Clinica',-25.5373324,-49.1984914, 231],
+          ['Clinica',-25.5287717,-49.1497664, 232],
+          ['Clinica',-25.6293326,-49.177416, 233],
+          ['Clinica',-25.5303723,-49.0922729, 234],
+          ['Clinica',-25.5332918,-49.2061537, 235],
+          ['Clinica',-25.5032115,-49.1732465, 236],
+          ['Clinica',-25.5127867,-49.1802545, 237],
+          ['Clinica',-25.54525,-49.1933975, 238],
+          ['Clinica',-25.5053811,-49.1792918, 239],
+          ['Clinica',-25.5427463,-49.2093167, 240],
+          ['Clinica',-25.5187092,-49.1636501, 241],
+          ['Clinica',-25.5508612,-49.1792319, 242],
+          ['Clinica',-25.5490171,-49.2024068, 243],
+          ['Clinica',-25.5075926,-49.1647942, 244],
+          ['Clinica',-25.5302526,-49.0927922, 245],
+          ['Clinica',-25.5600965,-49.2181154, 246],
+          ['Clinica',-25.533578,-49.2103584, 247],
+          ['Clinica',-25.5629201,-49.2075935, 248],
+          ['Clinica',-25.5353576,-49.207506, 249],
+          ['Clinica',-25.5367616,-49.2056742, 250],
+          ['Clinica',-25.5357085,-49.2051923, 251],
+          ['Clinica',-25.5359029,-49.2048511, 252],
+          ['Clinica',-25.5358712,-49.2044735, 253],
+          ['Clinica',-25.5318429,-49.2035783, 254],
+          ['Clinica',-25.5360772,-49.2028684, 255],
+          ['Clinica',-25.537313,-49.2027903, 256],
+          ['Clinica',-25.528013,-49.2026603, 257],
+          ['Clinica',-25.5377057,-49.2016899, 258],
+          ['Clinica',-25.5363653,-49.2013318, 259],
+          ['Clinica',-25.5384814,-49.2001658, 260],
+          ['Clinica',-25.5375271,-49.1996427, 261],
+          ['Clinica',-25.5408659,-49.1995232, 262],
+          ['Clinica',-25.5364236,-49.1994702, 263],
+          ['Clinica',-25.5358793,-49.1992494, 264],
+          ['Clinica',-25.5382347,-49.1991844, 265],
+          ['Clinica',-25.5378176,-49.1990414, 266],
+          ['Clinica',-25.5419037,-49.1987614, 267],
+          ['Clinica',-25.5423188,-49.1987452, 268],
+          ['Clinica',-25.5362253,-49.1987567, 269],
+          ['Clinica',-25.538129,-49.1979322, 270],
+          ['Clinica',-25.5393203,-49.1979045, 271],
+          ['Clinica',-25.5378462,-49.1976976, 272],
+          ['Clinica',-25.5404901,-49.1975984, 273],
+          ['Clinica',-25.5483062,-49.1974516, 274],
+          ['Clinica',-25.5391675,-49.1972301, 275],
+          ['Clinica',-25.5396887,-49.1970332, 276],
+          ['Clinica',-25.5424766,-49.1961656, 277],
+          ['Clinica',-25.5434144,-49.1960819, 278],
+          ['Clinica',-25.5345675,-49.1946223, 279],
+          ['Clinica',-25.5487906,-49.1942699, 280],
+          ['Clinica',-25.5389299,-49.1940594, 281],
+          ['Clinica',-25.5393892,-49.1939729, 282],
+          ['Clinica',-25.5429338,-49.1929745, 283],
+          ['Clinica',-25.5400285,-49.1923712, 284],
+          ['Clinica',-25.5121462,-49.1883124, 285],
+          ['Clinica',-25.5348034,-49.1874148, 286],
+          ['Clinica',-25.5464948,-49.1830993, 287],
+          ['Clinica',-25.5076651,-49.1836543, 288],
+          ['Clinica',-25.5126498,-49.1786847, 289],
+          ['Clinica',-25.5103386,-49.1750487, 290],
+          ['Clinica',-25.5562092,-49.1701147, 291],
+          ['Clinica',-25.4849446,-49.1520195, 292],
+          ['Clinica',-25.4869084,-49.1495428, 293],
+          ['Clinica',-25.5367464,-49.0902616, 294],
+          ['Clinica',-25.5335928,-49.0893365, 295]
+        ]
+
+        ubs = [
+          ['UBS Afonso Pena',-25.5084134,-49.1734066, 1],
+          ['UBS Agaraú',-25.6608905,-49.2375177, 2],
+          ['UBS Borda do Campo',-25.536893,-49.0904285, 3],
+          ['UBS Cachoeira',-25.6099743,-49.2495063, 4],
+          ['UBS Caic',-25.5632313,-49.1606527, 5],
+          ['UBS Campina do Taquaral',-25.6118537,-49.2094031, 6],
+          ['UBS Campo Largo da Roseira',-25.6761897,-49.1777995, 7],
+          ['UBS Castelhano',-25.8110106,-48.8981722, 8],
+          ['UBS Central',-25.5380872,-49.2026096, 9],
+          ['UBS Cidade Jardim',-25.5278805,-49.2088012, 10],
+          ['UBS Contenda',-25.7006691,-49.1496276, 11],
+          ['UBS Córrego Fundo',-25.7169175,-49.1318874, 12],
+          ['UBS Cotia',-25.6929524,-49.2297327, 13],
+          ['UBS Cristal',-25.5075358,-49.1352599, 14],
+          ['UBS Faxina',-25.6218742,-49.1464225, 15],
+          ['UBS Guatupê',-25.4841919,-49.148172, 16],
+          ['UBS Ipê',-25.5095022,-49.1465205, 17],
+          ['UBS Malhada',-25.6626819,-49.0997242, 18],
+          ['UBS Marcelino',-25.7488135,-49.2393221, 19],
+          ['UBS Martinópolis',-25.5282425,-49.0902471, 20],
+          ['UBS Moradias Trevisan',-25.5640224,-49.1973856, 21],
+          ['UBS Murici',-25.597346,-49.130763, 22],
+          ['UBS Quississana',-25.5469003,-49.1556081, 23],
+          ['UBS Riacho Doce',-25.540804,-49.1546665, 24],
+          ['UBS São Marcos',-25.6069622,-49.1694421, 25],
+          ['UBS Veneza',-25.556308,-49.2080204, 26],
+          ['UBS Xingú',-25.548761,-49.1773132, 27]
+        ];
+
+        var selectModal = document.getElementById("modal");    
+        var elm = document.createElement("option");
+        elm.value="empty"
+        elm.text=" - Selecione - "
+        selectModal.add(elm);
+        for (var i = 0; i < modais.length; i++) {
+          var modal = modais[i];
+          var el = document.createElement("option");
+          el.text = modal[0];
+          el.value = modal[1];
+          selectModal.add(el);
+        }
+
+        var selectPaciente = document.getElementById("paciente");    
+        var elp = document.createElement("option");
+        elp.value="empty"
+        elp.text=" - Selecione - "
+        selectPaciente.add(elp);
+        for (var i = 0; i < pacientes.length; i++) {
+          var paciente = pacientes[i];
+          var el = document.createElement("option");
+          el.text = paciente[3]+' '+paciente[0];
+          el.value = paciente[1]+','+paciente[2];
+          selectPaciente.add(el);
+        }
+
+        var selectClinica = document.getElementById("clinica");    
+        var elc = document.createElement("option");
+        elc.value="empty"
+        elc.text=" - Selecione - "
+        selectClinica.add(elc);
+        for (var i = 0; i < clinicas.length; i++) {
+          var clinic = clinicas[i];
+          var el = document.createElement("option");
+          el.text = clinic[3]+' '+clinic[0];
+          el.value = clinic[1]+','+clinic[2];
+          selectClinica.add(el);
+        }
+
+        var selectUbs = document.getElementById("ubs");
+        var elu = document.createElement("option");
+        elu.value="empty"
+        elu.text=" - Selecione - "
+        selectUbs.add(elu);
+        for (var i = 0; i < ubs.length; i++) {
+          var ub = ubs[i];
+          var el = document.createElement("option");
+          el.text = ub[3]+' '+ub[0];
+          el.value = ub[1]+','+ub[2];
+          selectUbs.add(el);
+        }
+
+        var directionsService = new google.maps.DirectionsService;
+        var directionsDisplay = new google.maps.DirectionsRenderer;
+        
+        map = new google.maps.Map(document.getElementById('map'), {
+          zoom: 11,
+          //styles: estiloNight,
+          center: {lat: -25.571118, lng: -49.1745977},          
+        });
+        directionsDisplay.setMap(map);
+
+        document.getElementById('submit').addEventListener('click', function() {
+
+          var descOrigem;
+          var descDestino;
+          var descModal;
+
+          var modal = document.getElementById("modal");
+          var paciente = document.getElementById("paciente");
+          var ubs = document.getElementById("ubs");
+          var clinica = document.getElementById("clinica");
+
+          var optModal = modal.options[modal.selectedIndex].value;
+          var optPaciente = paciente.options[paciente.selectedIndex].value;
+          var optUbs = ubs.options[ubs.selectedIndex].value;
+          var optClinica = clinica.options[clinica.selectedIndex].value;
+
+          var mensagem = ""
+          /*if (document.getElementById('chave').value=='') {
+            mensagem = "Informe a Chave de Acesso para consultar \n"
+          }*/
+
+          descModal = modal.options[modal.selectedIndex].text;
+
+          if (optModal=='empty') {
+            mensagem = mensagem + "Informe um Modal para a consulta \n"
+          }
+
+          if (optPaciente=='empty') {
+            mensagem = mensagem + "Informe um Paciente para a consulta \n"
+          }else{
+            descOrigem = paciente.options[paciente.selectedIndex].text;
+          }
+
+          if (optUbs=='empty' && $("input[name=dest-radio]:checked").val()=="ubs") {
+            mensagem = mensagem + "Informe uma Ubs para a consulta \n"
+          }else{
+            descDestino = ubs.options[ubs.selectedIndex].text;
+          }
+
+          if (optClinica=='empty' && $("input[name=dest-radio]:checked").val()=="clinica") {
+            mensagem = mensagem + "Informe uma Clinica para a consulta \n"
+          }else{
+            descDestino = clinica.options[clinica.selectedIndex].text;
+          }
+
+          if(mensagem != ""){
+            alert(mensagem);
+            return false;
+          }
+          
+          calculateAndDisplayRoute(directionsService, directionsDisplay, descModal, descOrigem, descDestino);
+        });
+      }
+
+      function calculateAndDisplayRoute(directionsService, directionsDisplay, descModal, descOrigem, descDestino) {
+
+
+        var dest,destT;
+        if(destino=="ubs"){
+          dest = document.getElementById('ubs').value;
+          destT = $("#ubs option:selected").text();
+        } else if (destino=="clinica"){
+          dest = document.getElementById('clinica').value;
+          destT = $("#clinica option:selected").text();
+        }
+
+        directionsService.route({
+          origin: document.getElementById('paciente').value,
+          destination: dest,
+          optimizeWaypoints: true,
+          travelMode: document.getElementById('modal').value
+          //travelMode: 'DRIVING'
+        }, function(response, status) {
+          if (status === 'OK') {
+            directionsDisplay.setDirections(response);
+            var route = response.routes[0];
+            var summaryPanel = document.getElementById('directions-panel');
+            summaryPanel.innerHTML = '';
+            // For each route, display summary information.
+            for (var i = 0; i < route.legs.length; i++) {
+              var routeSegment = i + 1;
+              
+              summaryPanel.innerHTML += '<b>Detalhes ' + '</b><br>';
+              summaryPanel.innerHTML += '<b>Origem (A): ' + '</b><br>';
+              summaryPanel.innerHTML += descOrigem  + '</b><br>'
+              summaryPanel.innerHTML += '<b>Destino (B): ' + '</b><br>';
+              summaryPanel.innerHTML += destT  + '</b><br>'
+              summaryPanel.innerHTML += '<b>Distancia: ' + '</b><br>';
+              summaryPanel.innerHTML += route.legs[i].distance.text  + '</b><br>'
+            }
+          } else {
+            window.alert('Directions request failed due to ' + status);
+          }
+        });
+      }
+    </script>
+    <script async defer
+    src="https://maps.googleapis.com/maps/api/js?key=XXXX&callback=initMap">
+    </script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  </body>
+</html>
