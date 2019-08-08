@@ -1,5 +1,5 @@
 # AnaliseEspacial-Geoprocessamento
 
-[dtc mapeamento](https://www.google.com)
+[dtc mapeamento](https://github.com/Andreawendt/AnaliseEspacial-Geoprocessamento/tree/master/dtc-mapeamento)
 
-[dtc app](https://www.google.com "Google's Homepage")
+[dtc app](https://github.com/Andreawendt/AnaliseEspacial-Geoprocessamento/tree/master/dtc-app)
